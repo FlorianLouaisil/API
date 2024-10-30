@@ -1,12 +1,12 @@
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000
 
 app.use(express.json());
 
 // Exemple d'endpoint
-app.get('/api/data', (req, res) => {
-    res.json({ message: 'Hello, World!' });
+app.get('/', (req, res) => {
+    res.send('Hello, World!');
 });
 
 app.listen(port, () => {
