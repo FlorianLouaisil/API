@@ -1,34 +1,49 @@
+// index.js
 const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
+const sqlite3 = require('sqlite3').verbose();
+const dotenv = require('dotenv');
 
+dotenv.config();
+
+const app = express();
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.send('Bienvenue sur mon API!');
+// Connexion à la base de données SQLite
+const db = new sqlite3.Database('./database.db', (err) => {
+  if (err) {
+    console.error('Erreur de connexion à la base de données', err.message);
+  } else {
+    console.log('Connexion à la base de données SQLite réussie');
+  }
 });
 
-app.listen(PORT, () => {
-    console.log(`Serveur lancé sur le port ${PORT}`);
-});
+// Créer une table pour l'exemple
+db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)`);
 
-
-const { Pool } = require('pg');
-
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-});
-
-app.get('/data', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM my_table');
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Erreur serveur');
+// Routes
+app.get('/api/users', (req, res) => {
+  db.all('SELECT * FROM users', [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
     }
+    res.json(rows);
+  });
+});
+
+app.post('/api/users', (req, res) => {
+  const { name, email } = req.body;
+  db.run(`INSERT INTO users (name, email) VALUES (?, ?)`, [name, email], function (err) {
+    if (err) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    res.json({ id: this.lastID });
+  });
+});
+
+// Démarrage du serveur localement
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Serveur démarré sur le port ${PORT}`);
 });
